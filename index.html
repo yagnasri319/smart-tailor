@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTailor – Tailor Management System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#16a34a',
+                            600: '#15803d',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            gold: '#d97706',
+                            goldlight: '#fef3c7'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+    <div id="app" class="min-h-screen flex flex-col md:flex-row relative">
+
+        <!-- LOGIN MODAL / SCREEN -->
+        <div id="login-screen" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-brand-100 text-brand-700 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                        <i class="fa-solid fa-scissors"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900">SmartTailor Pro</h1>
+                    <p class="text-sm text-slate-500 mt-1">Boutique & Tailoring Management Studio</p>
+                </div>
+                <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Phone or Username</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="login-user" required value="9876543210" class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Password</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400"></i>
+                            <input type="password" id="login-pass" required value="password123" class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-700 hover:bg-brand-800 text-white font-medium py-2.5 rounded-lg shadow-md transition flex items-center justify-center gap-2 text-sm">
+                        <span>Sign In to Studio</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <button type="button" onclick="quickDemoLogin()" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium py-2 rounded-lg border border-amber-200 text-xs transition">
+                        <i class="fa-solid fa-bolt mr-1"></i> Quick Demo Access (Master Tailor)
+                    </button>
+                </form>
+                <div class="mt-6 text-center text-xs text-slate-400">
+                    SmartTailor v3.4 • Offline First Local DB Enabled
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="sidebar" class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col justify-between min-h-screen sticky top-0 z-30">
+            <div>
+                <!-- Brand Logo -->
+                <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md">
+                        <i class="fa-solid fa-scissors"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-white leading-tight">SmartTailor</h2>
+                        <span class="text-xs text-slate-400 font-medium">Boutique OS v3.4</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-3 space-y-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition text-white bg-brand-700">
+                        <i class="fa-solid fa-chart-pie w-5 text-center"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('customers')" id="nav-customers" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-users w-5 text-center"></i> Customers
+                    </button>
+                    <button onclick="openNewOrderModal()" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-amber-600 hover:bg-amber-700 text-white my-2 shadow-sm">
+                        <i class="fa-solid fa-plus-circle w-5 text-center"></i> New Order
+                    </button>
+                    <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-list-check w-5 text-center"></i> All Orders
+                    </button>
+                    <button onclick="switchTab('calendar')" id="nav-calendar" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        <i class="fa-regular fa-calendar-days w-5 text-center"></i> Delivery Calendar
+                    </button>
+                    <button onclick="switchTab('reminders')" id="nav-reminders" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white relative">
+                        <i class="fa-solid fa-bell w-5 text-center"></i> Reminders
+                        <span id="nav-badge-count" class="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                    </button>
+                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-chart-line w-5 text-center"></i> Analytics & Reports
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tailor User Profile & Logout -->
+            <div class="p-4 border-t border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-slate-700 rounded-full flex items-center justify-center font-bold text-amber-400">
+                            ST
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-white leading-tight">Royal Tailors</p>
+                            <p class="text-xs text-slate-400">+91 9876543210</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 text-sm transition p-2" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTAINER -->
+        <main class="flex-1 min-w-0 flex flex-col min-h-screen bg-slate-50">
+            <!-- HEADER BAR -->
+            <header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 py-3 flex items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-600 hover:text-slate-900 text-lg p-1">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 id="page-title" class="text-lg md:text-xl font-bold text-slate-800 capitalize">Dashboard</h1>
+                </div>
+
+                <!-- Search & Actions -->
+                <div class="flex items-center gap-3">
+                    <div class="relative hidden sm:block w-48 md:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                        <input type="text" id="global-search" onkeyup="handleGlobalSearch(event)" placeholder="Search orders, phone, customer..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50">
+                    </div>
+
+                    <!-- Today's Date Indicator -->
+                    <div class="hidden lg:flex items-center gap-2 bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                        <i class="fa-regular fa-calendar text-brand-600"></i>
+                        <span id="current-system-date">17 Sep 2026</span>
+                    </div>
+
+                    <!-- Notification Bell Drawer Toggle -->
+                    <div class="relative">
+                        <button onclick="toggleNotificationDrawer()" class="relative p-2 text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition">
+                            <i class="fa-solid fa-bell text-lg"></i>
+                            <span id="header-bell-badge" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white hidden"></span>
+                        </button>
+
+                        <!-- Notification Dropdown -->
+                        <div id="notification-drawer" class="hidden absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                            <div class="bg-slate-900 text-white p-3.5 flex items-center justify-between text-xs font-semibold">
+                                <span class="flex items-center gap-1.5"><i class="fa-solid fa-bell text-amber-400"></i> Reminders & Alerts</span>
+                                <button onclick="markAllNotificationsRead()" class="text-xs text-slate-300 hover:text-white underline">Mark all read</button>
+                            </div>
+                            <div id="notification-list" class="max-h-80 overflow-y-auto custom-scrollbar divide-y divide-slate-100 p-1">
+                                <!-- Dynamic notifications load here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- MAIN CONTENT VIEW CANVAS -->
+            <div id="content-container" class="p-4 md:p-6 flex-1 overflow-y-auto">
+                
+                <!-- TAB 1: DASHBOARD -->
+                <div id="tab-dashboard" class="tab-content space-y-6">
+                    <!-- KPI Cards Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-slate-500">Total Customers</span>
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm"><i class="fa-solid fa-users"></i></div>
+                            </div>
+                            <h3 id="kpi-customers" class="text-xl md:text-2xl font-bold text-slate-800">0</h3>
+                            <span class="text-[11px] text-slate-400">Registered Tailoring Clients</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-slate-500">Total Orders</span>
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm"><i class="fa-solid fa-scissors"></i></div>
+                            </div>
+                            <h3 id="kpi-orders" class="text-xl md:text-2xl font-bold text-slate-800">0</h3>
+                            <span class="text-[11px] text-slate-400">All-time bookings</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-slate-500">In Stitching / Pending</span>
+                                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm"><i class="fa-solid fa-hourglass-half"></i></div>
+                            </div>
+                            <h3 id="kpi-pending" class="text-xl md:text-2xl font-bold text-amber-600">0</h3>
+                            <span class="text-[11px] text-slate-400">Active active work</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-slate-500">Due Today</span>
+                                <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm"><i class="fa-solid fa-clock"></i></div>
+                            </div>
+                            <h3 id="kpi-due-today" class="text-xl md:text-2xl font-bold text-rose-600">0</h3>
+                            <span class="text-[11px] text-slate-400">Immediate delivery</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-slate-500">Pending Balance</span>
+                                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                            </div>
+                            <h3 id="kpi-balance" class="text-xl md:text-2xl font-bold text-emerald-700">₹0</h3>
+                            <span class="text-[11px] text-slate-400">To collect on delivery</span>
+                        </div>
+                    </div>
+
+                    <!-- Urgent Alerts Banner -->
+                    <div id="urgent-alerts-container" class="space-y-2"></div>
+
+                    <!-- Deliveries & Quick Actions Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Upcoming Deliveries Widget -->
+                        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-truck-fast text-brand-600"></i> Upcoming Deliveries Schedule
+                                </h2>
+                                <button onclick="switchTab('calendar')" class="text-xs text-brand-700 hover:underline font-semibold">View Full Calendar →</button>
+                            </div>
+                            <div id="dashboard-deliveries-list" class="space-y-3">
+                                <!-- Dynamic delivery cards -->
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions & Quick Stats -->
+                        <div class="space-y-4">
+                            <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-md">
+                                <h3 class="font-bold text-amber-400 text-sm mb-3 uppercase tracking-wider">Quick Actions</h3>
+                                <div class="grid grid-cols-1 gap-2.5">
+                                    <button onclick="openNewOrderModal()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                                        <span><i class="fa-solid fa-plus mr-2"></i> Book New Order</span>
+                                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                    </button>
+                                    <button onclick="openCustomerModal()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                                        <span><i class="fa-solid fa-user-plus mr-2"></i> Register New Customer</span>
+                                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                    </button>
+                                    <button onclick="printTodaysSchedule()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                                        <span><i class="fa-solid fa-print mr-2"></i> Print Today's Stitch Sheet</span>
+                                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Summary Quick Pill -->
+                            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Stitching Pipeline</h4>
+                                <div class="space-y-2 text-xs">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-600"><i class="fa-solid fa-scissors text-amber-500 mr-2"></i> Cutting Phase:</span>
+                                        <span id="pipe-cutting" class="font-bold text-slate-800">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-600"><i class="fa-solid fa-shirt text-blue-500 mr-2"></i> Stitching Phase:</span>
+                                        <span id="pipe-stitching" class="font-bold text-slate-800">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-600"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i> Ready for Pickup:</span>
+                                        <span id="pipe-ready" class="font-bold text-slate-800">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: CUSTOMERS -->
+                <div id="tab-customers" class="tab-content hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="relative flex-1 max-w-md">
+                            <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            <input type="text" id="customer-search-input" onkeyup="renderCustomersTable()" placeholder="Search by customer name or phone..." class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <button onclick="openCustomerModal()" class="bg-brand-700 hover:bg-brand-800 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+                            <i class="fa-solid fa-user-plus"></i> Add New Customer
+                        </button>
+                    </div>
+
+                    <!-- Customers Table -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3.5">Customer Name</th>
+                                        <th class="p-3.5">Phone Number</th>
+                                        <th class="p-3.5">Address</th>
+                                        <th class="p-3.5">Total Orders</th>
+                                        <th class="p-3.5">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <!-- Dynamic customers rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ALL ORDERS -->
+                <div id="tab-orders" class="tab-content hidden space-y-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full md:w-auto">
+                            <input type="text" id="order-search-input" onkeyup="renderOrdersTable()" placeholder="Search Name/Order ID..." class="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <select id="order-status-filter" onchange="renderOrdersTable()" class="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                                <option value="ALL">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Cutting">Cutting</option>
+                                <option value="Stitching">Stitching</option>
+                                <option value="Ready">Ready</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                            <select id="order-dress-filter" onchange="renderOrdersTable()" class="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                                <option value="ALL">All Dress Types</option>
+                                <option value="Blouse">Blouse / Saree Blouse</option>
+                                <option value="Chudidar">Chudidar / Kurti</option>
+                                <option value="Shirt">Shirt</option>
+                                <option value="Pant">Pant</option>
+                                <option value="Lehenga">Lehenga</option>
+                                <option value="Kids dress">Kids dress</option>
+                            </select>
+                            <select id="order-payment-filter" onchange="renderOrdersTable()" class="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                                <option value="ALL">All Payments</option>
+                                <option value="PENDING">Balance Due</option>
+                                <option value="PAID">Fully Paid</option>
+                            </select>
+                        </div>
+                        <button onclick="openNewOrderModal()" class="w-full md:w-auto bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> New Order
+                        </button>
+                    </div>
+
+                    <!-- Orders Table -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3.5">Order ID</th>
+                                        <th class="p-3.5">Customer</th>
+                                        <th class="p-3.5">Dress Type</th>
+                                        <th class="p-3.5">Delivery Date</th>
+                                        <th class="p-3.5">Status</th>
+                                        <th class="p-3.5">Total Cost</th>
+                                        <th class="p-3.5">Balance</th>
+                                        <th class="p-3.5 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <!-- Dynamic order rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: DELIVERY CALENDAR -->
+                <div id="tab-calendar" class="tab-content hidden space-y-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <button onclick="changeCalendarMonth(-1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h2 id="calendar-month-year" class="font-bold text-slate-800 text-base">September 2026</h2>
+                            <button onclick="changeCalendarMonth(1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <button onclick="resetCalendarToToday()" class="text-xs bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-100">
+                            Jump to Today
+                        </button>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-x-auto">
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-1 min-w-[600px]">
+                            <!-- Calendar Days loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Selected Day Deliveries Drawer -->
+                    <div id="calendar-day-details" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                        <h3 id="selected-date-title" class="font-bold text-slate-800 text-sm">Select a date from calendar to view scheduled orders</h3>
+                        <div id="selected-date-orders" class="space-y-2 text-xs">
+                            <!-- Selected date orders load here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: REMINDERS & NOTIFICATIONS -->
+                <div id="tab-reminders" class="tab-content hidden space-y-4">
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-2xl"></i>
+                            <div>
+                                <h3 class="font-bold text-amber-900 text-sm">Smart Stitching & Delivery Alerts</h3>
+                                <p class="text-xs text-amber-700">Calculated automatically against real-time system delivery schedules.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="reminders-full-list" class="space-y-3">
+                        <!-- Dynamic full reminders list -->
+                    </div>
+                </div>
+
+                <!-- TAB 6: REPORTS & ANALYTICS -->
+                <div id="tab-reports" class="tab-content hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="text-xs font-semibold text-slate-400 uppercase">Total Expected Revenue</span>
+                            <h3 id="rep-total-rev" class="text-2xl font-bold text-slate-900 mt-1">₹0</h3>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="text-xs font-semibold text-slate-400 uppercase">Collected Revenue</span>
+                            <h3 id="rep-collected-rev" class="text-2xl font-bold text-emerald-600 mt-1">₹0</h3>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="text-xs font-semibold text-slate-400 uppercase">Total Uncollected Balance</span>
+                            <h3 id="rep-pending-rev" class="text-2xl font-bold text-rose-600 mt-1">₹0</h3>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-sm mb-4">Orders Status Distribution</h3>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="chart-status-pie"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-sm mb-4">Top Popular Dress Categories</h3>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="chart-dress-bar"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Backup & Utilities -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <h3 class="font-bold text-slate-800 text-sm">Data Backup & Restore Tools</h3>
+                        <p class="text-xs text-slate-500">Safeguard tailor shop records or export customer databases into spreadsheet formats.</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="exportDataJSON()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> Export Backup (JSON)
+                            </button>
+                            <button onclick="exportCustomersCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-file-csv"></i> Export Customers (CSV)
+                            </button>
+                            <button onclick="resetDataToSample()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-rotate"></i> Reset To Initial Sample Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS & DRAWERS CONTAINER -->
+
+    <!-- CUSTOMER MODAL (CREATE / EDIT) -->
+    <div id="customer-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 id="customer-modal-title" class="font-bold text-slate-900 text-base">Add New Customer</h3>
+                <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="customer-form" onsubmit="saveCustomer(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="cust-id">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Customer Full Name *</label>
+                    <input type="text" id="cust-name" required placeholder="e.g. Sravani Rao" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Phone Number *</label>
+                    <input type="tel" id="cust-phone" required placeholder="e.g. 9876543210" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Address</label>
+                    <textarea id="cust-address" rows="2" placeholder="Street, landmark, city..." class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Notes / Preferences</label>
+                    <textarea id="cust-notes" rows="2" placeholder="Preferred fitting tight/loose, preferred neck design, etc." class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-semibold">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW ORDER / EDIT ORDER MODAL -->
+    <div id="order-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-3 md:p-6">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-6 border border-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 id="order-modal-title" class="font-bold text-slate-900 text-base">Create Tailoring Booking</h3>
+                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="order-form" onsubmit="saveOrder(event)" class="space-y-6 text-xs">
+                <input type="hidden" id="order-id">
+
+                <!-- Step 1: Customer Selection -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/70 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-brand-700"><i class="fa-solid fa-user-check mr-1"></i> Customer Selection</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Select Customer *</label>
+                            <select id="ord-customer-id" required onchange="onOrderCustomerChange()" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 bg-white">
+                                <!-- Loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" onclick="openCustomerModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-plus text-xs"></i> Quick Register New Client
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Order & Dress Particulars -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Dress Type *</label>
+                        <select id="ord-dress-type" required onchange="renderDynamicMeasurementsForm()" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 bg-white font-medium">
+                            <option value="Blouse">Blouse / Saree Blouse</option>
+                            <option value="Chudidar">Chudidar</option>
+                            <option value="Kurti">Kurti</option>
+                            <option value="Shirt">Shirt</option>
+                            <option value="Pant">Pant</option>
+                            <option value="Lehenga">Lehenga</option>
+                            <option value="Kids dress">Kids dress</option>
+                            <option value="Other">Other / Custom</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Booking Date *</label>
+                        <input type="date" id="ord-order-date" required class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Target Delivery Date *</label>
+                        <input type="date" id="ord-delivery-date" required class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 bg-amber-50/50">
+                    </div>
+                </div>
+
+                <!-- Step 3: Measurement Entry with Previous Auto-Copy Feature -->
+                <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-200/60 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-amber-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-ruler-combined"></i> Specific Dress Measurements
+                        </h4>
+                        <button type="button" id="btn-copy-prev-measure" onclick="copyPreviousMeasurements()" class="hidden text-[11px] bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-1 rounded-lg transition shadow-sm">
+                            <i class="fa-solid fa-copy mr-1"></i> Copy Client's Previous Measurements
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Measurement Input Fields Container -->
+                    <div id="dynamic-measurements-container" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <!-- Loaded dynamically based on dress type -->
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Additional Notes / Stitching Instructions</label>
+                        <input type="text" id="ord-instructions" placeholder="e.g. Back hook, piping, extra lining, high neck" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <!-- Step 4: Pricing & Advance Payment Calculations -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Total Stitching Cost (₹) *</label>
+                        <input type="number" id="ord-total-cost" required min="0" onkeyup="calcOrderBalance()" onchange="calcOrderBalance()" value="500" class="w-full p-2.5 rounded-lg border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Advance Paid (₹)</label>
+                        <input type="number" id="ord-advance" min="0" onkeyup="calcOrderBalance()" onchange="calcOrderBalance()" value="200" class="w-full p-2.5 rounded-lg border border-slate-200 font-semibold text-emerald-700 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Calculated Balance (₹)</label>
+                        <input type="number" id="ord-balance" readonly value="300" class="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-100 font-bold text-rose-600">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Initial Status</label>
+                        <select id="ord-status" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500 bg-white font-semibold">
+                            <option value="Pending">Pending</option>
+                            <option value="Cutting">Cutting</option>
+                            <option value="Stitching">Stitching</option>
+                            <option value="Ready">Ready</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md">Save & Confirm Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ORDER DETAIL MODAL -->
+    <div id="order-detail-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-3 md:p-6">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <span id="dtl-order-id" class="text-xs font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md">#ORD-1001</span>
+                    <h3 id="dtl-customer-name" class="font-bold text-slate-900 text-lg mt-1">Sravani Rao</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="printOrderReceiptFromDetail()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm"><i class="fa-solid fa-print mr-1"></i> Receipt</button>
+                    <button onclick="closeOrderDetailModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+
+            <div id="dtl-content-body" class="space-y-4 text-xs">
+                <!-- Loaded dynamically -->
+            </div>
+
+            <!-- Action buttons -->
+            <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <button id="dtl-btn-edit" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg">Edit Booking</button>
+                    <button id="dtl-btn-status" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold px-3 py-1.5 rounded-lg">Update Status</button>
+                </div>
+                <button id="dtl-btn-payment" class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-1.5 rounded-lg shadow-sm">Record Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK PAYMENT MODAL -->
+    <div id="payment-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 class="font-bold text-slate-900 text-base">Record Payment Entry</h3>
+                <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="savePaymentEntry(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="pay-order-id">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Amount Paid (₹) *</label>
+                    <input type="number" id="pay-amount" required min="1" class="w-full p-2.5 rounded-lg border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Payment Note / Type</label>
+                    <input type="text" id="pay-note" placeholder="e.g. Fitting Payment / Final Payment" value="Partial Payment" class="w-full p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Date Stamp</label>
+                    <input type="date" id="pay-date" required class="w-full p-2.5 rounded-lg border border-slate-200">
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closePaymentModal()" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-emerald-700 text-white font-semibold shadow-sm">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- UPDATE STATUS MODAL -->
+    <div id="status-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 class="font-bold text-slate-900 text-base">Update Order Status</h3>
+                <button onclick="closeStatusModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveStatusUpdate(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="status-order-id">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">New Stitching Phase</label>
+                    <select id="status-select-val" class="w-full p-2.5 rounded-lg border border-slate-200 bg-white font-semibold">
+                        <option value="Pending">Pending</option>
+                        <option value="Cutting">Cutting</option>
+                        <option value="Stitching">Stitching</option>
+                        <option value="Ready">Ready</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeStatusModal()" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-brand-700 text-white font-semibold shadow-sm">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRINTABLE RECEIPT CONTAINER (Hidden except in print) -->
+    <div id="printable-receipt" class="hidden bg-white text-slate-900 p-6 font-mono text-xs">
+        <div class="text-center border-b pb-4 mb-4">
+            <h1 class="text-xl font-bold uppercase tracking-wider">SMART TAILOR BOUTIQUE</h1>
+            <p class="text-[11px] text-slate-600">Main Road, Designer Lane, Madhuravada</p>
+            <p class="text-[11px] text-slate-600">Phone: +91 9876543210</p>
+        </div>
+        <div class="flex justify-between mb-4 border-b pb-2">
+            <div>
+                <p><strong>Customer:</strong> <span id="rcpt-cust-name">Sravani Rao</span></p>
+                <p><strong>Phone:</strong> <span id="rcpt-cust-phone">9876543210</span></p>
+            </div>
+            <div class="text-right">
+                <p><strong>Order ID:</strong> <span id="rcpt-order-id">#ORD-1001</span></p>
+                <p><strong>Date:</strong> <span id="rcpt-order-date">15 Sep 2026</span></p>
+                <p><strong>Delivery:</strong> <span id="rcpt-delivery-date">20 Sep 2026</span></p>
+            </div>
+        </div>
+        <div class="mb-4">
+            <p class="font-bold border-b pb-1 mb-2 uppercase">Order Details</p>
+            <div class="flex justify-between my-1">
+                <span>Dress Type:</span>
+                <span id="rcpt-dress-type" class="font-bold">Blouse</span>
+            </div>
+            <div id="rcpt-measurements-summary" class="bg-slate-50 p-2 text-[10px] my-2 border rounded">
+                <!-- Summary of measurements -->
+            </div>
+            <p id="rcpt-instructions" class="italic text-[10px] text-slate-600"></p>
+        </div>
+        <div class="border-t pt-2 space-y-1 text-right mb-6">
+            <p>Total Stitching Cost: <strong id="rcpt-total-cost">₹800</strong></p>
+            <p class="text-emerald-700">Total Amount Paid: <strong id="rcpt-total-paid">₹500</strong></p>
+            <p class="text-rose-700 font-bold">Balance Due at Delivery: <strong id="rcpt-balance">₹300</strong></p>
+        </div>
+        <div class="text-center border-t pt-4 text-[10px] text-slate-500 space-y-1">
+            <p>Thank you for choosing SmartTailor Boutique!</p>
+            <p>Please bring this receipt when collecting your stitched garments.</p>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <script>
+        // GLOBAL CONSTANTS & BASELINE
+        const SYSTEM_TODAY = "2026-09-17"; // Fixed September 2026 baseline context
+        let dbCustomers = [];
+        let dbOrders = [];
+        let currentCalendarDate = new Date(2026, 8, 1); // Sept 2026
+
+        // SAMPLE DATABASE INITIALIZER
+        const SAMPLE_CUSTOMERS = [
+            { id: "CST-101", name: "Sravani Rao", phone: "9876543210", address: "Flat 402, Royal Palms, Vizag", notes: "Prefers deep back neck & cup padding" },
+            { id: "CST-102", name: "Anitha Sharma", phone: "9823011223", address: "Plot 12, Sector 5, MVP Colony", notes: "Always tight sleeve fitting requested" },
+            { id: "CST-103", name: "Lakshmi Prasanna", phone: "9440192837", address: "Door 4-1, Gajuwaka", notes: "Prefers cotton lining only" },
+            { id: "CST-104", name: "Priya Varma", phone: "9988776655", address: "Beach Road, Park Heights", notes: "Delicate embroidery designs" },
+            { id: "CST-105", name: "Kiran Kumar", phone: "9123456789", address: "NAD Junction, Ward 14", notes: "Formal trousers & crisp collar shirts" },
+            { id: "CST-106", name: "Meena Kumari", phone: "9765432100", address: "Dwaraka Nagar, 3rd Lane", notes: "Saree tassel finishing extra" },
+            { id: "CST-107", name: "Sunitha Reddy", phone: "9393939393", address: "Madhuravada Main Road", notes: "Lehenga latkans required" },
+            { id: "CST-108", name: "Rajesh Varma", phone: "9848022338", address: "Lawson's Bay Colony", notes: "Double stitch on trousers" }
+        ];
+
+        const SAMPLE_ORDERS = [
+            {
+                id: "ORD-1001",
+                customerId: "CST-101",
+                dressType: "Blouse",
+                orderDate: "2026-09-10",
+                deliveryDate: "2026-09-17", // Due Today
+                status: "Ready",
+                totalCost: 800,
+                advancePaid: 500,
+                measurements: { Shoulder: "14.5", Chest: "36", Waist: "30", SleeveLength: "10", ArmHole: "16", NeckFront: "6.5", NeckBack: "9.5", BlouseLength: "14" },
+                instructions: "Gold zardosi piping around neck",
+                payments: [{ date: "2026-09-10", amount: 500, note: "Advance Cash" }]
+            },
+            {
+                id: "ORD-1002",
+                customerId: "CST-102",
+                dressType: "Saree Blouse",
+                orderDate: "2026-09-11",
+                deliveryDate: "2026-09-16", // Overdue by 1 day
+                status: "Stitching",
+                totalCost: 950,
+                advancePaid: 300,
+                measurements: { Shoulder: "15", Chest: "38", Waist: "32", SleeveLength: "11", ArmHole: "17", NeckFront: "7", NeckBack: "10", BlouseLength: "14.5" },
+                instructions: "Thread tassels on dori",
+                payments: [
+                    { date: "2026-09-11", amount: 300, note: "Initial Advance" },
+                    { date: "2026-09-15", amount: 200, note: "Fitting Payment" }
+                ]
+            },
+            {
+                id: "ORD-1003",
+                customerId: "CST-103",
+                dressType: "Chudidar",
+                orderDate: "2026-09-12",
+                deliveryDate: "2026-09-18", // Due Tomorrow
+                status: "Stitching",
+                totalCost: 1200,
+                advancePaid: 600,
+                measurements: { Shoulder: "14", Chest: "34", Waist: "28", SleeveLength: "16", ShirtLength: "40", Neck: "6.5" },
+                instructions: "Anarkali flare pattern with lining",
+                payments: [{ date: "2026-09-12", amount: 600, note: "Advance GPay" }]
+            },
+            {
+                id: "ORD-1004",
+                customerId: "CST-104",
+                dressType: "Lehenga",
+                orderDate: "2026-09-05",
+                deliveryDate: "2026-09-20", // Due in 3 days
+                status: "Cutting",
+                totalCost: 3500,
+                advancePaid: 1500,
+                measurements: { Waist: "30", Hip: "38", FullLength: "42" },
+                instructions: "Heavy cancan mesh layering under lehenga skirt",
+                payments: [{ date: "2026-09-05", amount: 1500, note: "Advance" }]
+            },
+            {
+                id: "ORD-1005",
+                customerId: "CST-105",
+                dressType: "Shirt",
+                orderDate: "2026-09-14",
+                deliveryDate: "2026-09-19", // Due in 2 days
+                status: "Pending",
+                totalCost: 650,
+                advancePaid: 300,
+                measurements: { Shoulder: "18", Chest: "40", Waist: "34", SleeveLength: "25", ShirtLength: "29", Neck: "15.5" },
+                instructions: "Slim fit pattern, stiff collar bone inserted",
+                payments: [{ date: "2026-09-14", amount: 300, note: "Advance" }]
+            },
+            {
+                id: "ORD-1006",
+                customerId: "CST-105",
+                dressType: "Pant",
+                orderDate: "2026-09-14",
+                deliveryDate: "2026-09-19", // Due in 2 days
+                status: "Pending",
+                totalCost: 750,
+                advancePaid: 300,
+                measurements: { Waist: "34", Hip: "40", FullLength: "40", Thigh: "24", Knee: "18", Bottom: "14" },
+                instructions: "Cross pockets, narrow bottom tapered",
+                payments: [{ date: "2026-09-14", amount: 300, note: "Advance" }]
+            },
+            {
+                id: "ORD-1007",
+                customerId: "CST-106",
+                dressType: "Kurti",
+                orderDate: "2026-09-08",
+                deliveryDate: "2026-09-15", // Overdue by 2 days
+                status: "Ready",
+                totalCost: 700,
+                advancePaid: 700,
+                measurements: { Shoulder: "14", Chest: "36", Waist: "31", SleeveLength: "12", ShirtLength: "42" },
+                instructions: "Side slit reinforced stitch",
+                payments: [{ date: "2026-09-08", amount: 700, note: "Full Payment" }]
+            },
+            {
+                id: "ORD-1008",
+                customerId: "CST-107",
+                dressType: "Kids dress",
+                orderDate: "2026-09-15",
+                deliveryDate: "2026-09-22",
+                status: "Pending",
+                totalCost: 900,
+                advancePaid: 400,
+                measurements: { Chest: "26", Waist: "24", FullLength: "30" },
+                instructions: "Frock design with satin bow behind",
+                payments: [{ date: "2026-09-15", amount: 400, note: "Advance" }]
+            },
+            {
+                id: "ORD-1009",
+                customerId: "CST-108",
+                dressType: "Pant",
+                orderDate: "2026-09-01",
+                deliveryDate: "2026-09-10",
+                status: "Delivered",
+                totalCost: 750,
+                advancePaid: 750,
+                measurements: { Waist: "36", Hip: "42", FullLength: "41", Thigh: "25", Knee: "19", Bottom: "15" },
+                instructions: "Delivered on time",
+                payments: [
+                    { date: "2026-09-01", amount: 300, note: "Advance" },
+                    { date: "2026-09-10", amount: 450, note: "Final Delivery Payment" }
+                ]
+            },
+            {
+                id: "ORD-1010",
+                customerId: "CST-101",
+                dressType: "Kurti",
+                orderDate: "2026-08-20",
+                deliveryDate: "2026-08-28",
+                status: "Delivered",
+                totalCost: 600,
+                advancePaid: 600,
+                measurements: { Shoulder: "14.5", Chest: "36", Waist: "30", SleeveLength: "10" },
+                instructions: "Straight cut designer neck",
+                payments: [{ date: "2026-08-28", amount: 600, note: "Paid Full" }]
+            },
+            {
+                id: "ORD-1011",
+                customerId: "CST-103",
+                dressType: "Blouse",
+                orderDate: "2026-09-16",
+                deliveryDate: "2026-09-24",
+                status: "Pending",
+                totalCost: 850,
+                advancePaid: 300,
+                measurements: { Shoulder: "14", Chest: "34", Waist: "28", SleeveLength: "10", ArmHole: "15", NeckFront: "6", NeckBack: "8.5", BlouseLength: "13.5" },
+                instructions: "Princess cut stitching pattern",
+                payments: [{ date: "2026-09-16", amount: 300, note: "Advance" }]
+            },
+            {
+                id: "ORD-1012",
+                customerId: "CST-102",
+                dressType: "Chudidar",
+                orderDate: "2026-09-02",
+                deliveryDate: "2026-09-09",
+                status: "Delivered",
+                totalCost: 1100,
+                advancePaid: 1100,
+                measurements: { Shoulder: "15", Chest: "38", Waist: "32", SleeveLength: "15" },
+                instructions: "Patiyala pant bottom design",
+                payments: [{ date: "2026-09-09", amount: 1100, note: "Full Payment" }]
+            }
+        ];
+
+        // INITIALIZATION
+        window.onload = function() {
+            initLocalStorage();
+            loadDataFromStorage();
+            refreshAllUI();
+        };
+
+        function initLocalStorage() {
+            if (!localStorage.getItem("smarttailor_customers")) {
+                localStorage.setItem("smarttailor_customers", JSON.stringify(SAMPLE_CUSTOMERS));
+            }
+            if (!localStorage.getItem("smarttailor_orders")) {
+                localStorage.setItem("smarttailor_orders", JSON.stringify(SAMPLE_ORDERS));
+            }
+        }
+
+        function loadDataFromStorage() {
+            dbCustomers = JSON.parse(localStorage.getItem("smarttailor_customers")) || [];
+            dbOrders = JSON.parse(localStorage.getItem("smarttailor_orders")) || [];
+        }
+
+        function saveDataToStorage() {
+            localStorage.setItem("smarttailor_customers", JSON.stringify(dbCustomers));
+            localStorage.setItem("smarttailor_orders", JSON.stringify(dbOrders));
+            refreshAllUI();
+        }
+
+        function refreshAllUI() {
+            renderDashboardKPIs();
+            renderDashboardDeliveries();
+            renderCustomersTable();
+            renderOrdersTable();
+            renderCalendar();
+            renderReminders();
+            renderNotificationsDrawer();
+            renderReportsAnalytics();
+        }
+
+        // AUTHENTICATION LOGIC
+        function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById("login-screen").classList.add("hidden");
+        }
+
+        function quickDemoLogin() {
+            document.getElementById("login-screen").classList.add("hidden");
+        }
+
+        function handleLogout() {
+            document.getElementById("login-screen").classList.remove("hidden");
+        }
+
+        // TAB SWITCHING NAVIGATION
+        function switchTab(tabName) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.querySelectorAll(".nav-btn").forEach(el => {
+                el.classList.remove("bg-brand-700", "text-white");
+                el.classList.add("hover:bg-slate-800", "hover:text-white");
+            });
+
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            const activeNav = document.getElementById(`nav-${tabName}`);
+
+            if (activeTab) activeTab.classList.remove("hidden");
+            if (activeNav) {
+                activeNav.classList.add("bg-brand-700", "text-white");
+                activeNav.classList.remove("hover:bg-slate-800", "hover:text-white");
+            }
+
+            document.getElementById("page-title").innerText = tabName.replace('-', ' ');
+            
+            if (window.innerWidth < 768) {
+                document.getElementById("sidebar").classList.add("hidden");
+            }
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            sidebar.classList.toggle("hidden");
+        }
+
+        // HELPER UTILITIES & CALCULATIONS
+        function getCustomerById(id) {
+            return dbCustomers.find(c => c.id === id) || { name: "Unknown Client", phone: "-", address: "-" };
+        }
+
+        function calculateOrderPaidTotal(order) {
+            if (!order.payments || order.payments.length === 0) return order.advancePaid || 0;
+            return order.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        }
+
+        function calculateOrderBalance(order) {
+            const paid = calculateOrderPaidTotal(order);
+            return Math.max(0, order.totalCost - paid);
+        }
+
+        function getDaysDiffFromToday(targetDateStr) {
+            const today = new Date(SYSTEM_TODAY);
+            const target = new Date(targetDateStr);
+            const diffTime = target - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getStatusBadgeHTML(status) {
+            const map = {
+                'Pending': 'bg-amber-100 text-amber-800 border-amber-200',
+                'Cutting': 'bg-orange-100 text-orange-800 border-orange-200',
+                'Stitching': 'bg-blue-100 text-blue-800 border-blue-200',
+                'Ready': 'bg-teal-100 text-teal-800 border-teal-200',
+                'Delivered': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                'Cancelled': 'bg-rose-100 text-rose-800 border-rose-200'
+            };
+            const cls = map[status] || 'bg-slate-100 text-slate-700';
+            return `<span class="px-2.5 py-0.5 rounded-full font-semibold border text-[11px] inline-block ${cls}">${status}</span>`;
+        }
+
+        // DASHBOARD RENDERING
+        function renderDashboardKPIs() {
+            document.getElementById("kpi-customers").innerText = dbCustomers.length;
+            document.getElementById("kpi-orders").innerText = dbOrders.length;
+
+            const pendingOrders = dbOrders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled");
+            document.getElementById("kpi-pending").innerText = pendingOrders.length;
+
+            const dueToday = dbOrders.filter(o => o.deliveryDate === SYSTEM_TODAY && o.status !== "Delivered");
+            document.getElementById("kpi-due-today").innerText = dueToday.length;
+
+            let totalPendingBal = 0;
+            dbOrders.forEach(o => {
+                if (o.status !== "Cancelled") {
+                    totalPendingBal += calculateOrderBalance(o);
+                }
+            });
+            document.getElementById("kpi-balance").innerText = "₹" + totalPendingBal.toLocaleString();
+
+            // Stitching Pipeline counts
+            document.getElementById("pipe-cutting").innerText = dbOrders.filter(o => o.status === "Cutting").length;
+            document.getElementById("pipe-stitching").innerText = dbOrders.filter(o => o.status === "Stitching").length;
+            document.getElementById("pipe-ready").innerText = dbOrders.filter(o => o.status === "Ready").length;
+
+            // Render Urgent Alerts Banner
+            const urgentAlertsContainer = document.getElementById("urgent-alerts-container");
+            urgentAlertsContainer.innerHTML = "";
+
+            const overdueOrders = dbOrders.filter(o => getDaysDiffFromToday(o.deliveryDate) < 0 && o.status !== "Delivered" && o.status !== "Cancelled");
+            
+            if (overdueOrders.length > 0) {
+                overdueOrders.forEach(o => {
+                    const cust = getCustomerById(o.customerId);
+                    const daysAgo = Math.abs(getDaysDiffFromToday(o.deliveryDate));
+                    const alertDiv = document.createElement("div");
+                    alertDiv.className = "bg-rose-50 border-l-4 border-rose-600 p-3.5 rounded-r-xl flex items-center justify-between text-xs text-rose-900 shadow-sm";
+                    alertDiv.innerHTML = `
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-circle-exclamation text-rose-600 text-lg"></i>
+                            <div>
+                                <strong class="font-bold">OVERDUE ALERT:</strong> ${cust.name}'s ${o.dressType} order (#${o.id}) was due <strong>${daysAgo} day(s) ago</strong>!
+                            </div>
+                        </div>
+                        <button onclick="openOrderDetailModal('${o.id}')" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1 rounded-lg text-[11px] shadow-sm">Inspect</button>
+                    `;
+                    urgentAlertsContainer.appendChild(alertDiv);
+                });
+            }
+        }
+
+        function renderDashboardDeliveries() {
+            const container = document.getElementById("dashboard-deliveries-list");
+            container.innerHTML = "";
+
+            // Filter upcoming or pending deliveries sorted by delivery date
+            const upcoming = dbOrders
+                .filter(o => o.status !== "Delivered" && o.status !== "Cancelled")
+                .sort((a, b) => new Date(a.deliveryDate) - new Date(b.deliveryDate))
+                .slice(0, 5);
+
+            if (upcoming.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No upcoming pending deliveries at present.</p>`;
+                return;
+            }
+
+            upcoming.forEach(o => {
+                const cust = getCustomerById(o.customerId);
+                const diff = getDaysDiffFromToday(o.deliveryDate);
+                let diffBadge = "";
+
+                if (diff < 0) {
+                    diffBadge = `<span class="text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold">Overdue by ${Math.abs(diff)}d</span>`;
+                } else if (diff === 0) {
+                    diffBadge = `<span class="text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-bold animate-pulse">DUE TODAY</span>`;
+                } else if (diff === 1) {
+                    diffBadge = `<span class="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-semibold">Due Tomorrow</span>`;
+                } else {
+                    diffBadge = `<span class="text-slate-600 bg-slate-100 px-2 py-0.5 rounded">Due in ${diff} days</span>`;
+                }
+
+                const item = document.createElement("div");
+                item.className = "p-3.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/70 flex items-center justify-between transition cursor-pointer";
+                item.onclick = () => openOrderDetailModal(o.id);
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-brand-700 font-bold text-sm shadow-xs">
+                            <i class="fa-solid fa-shirt"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-900 text-xs">${cust.name}</h4>
+                                <span class="text-[10px] text-slate-400 font-mono">#${o.id}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500">${o.dressType} • Delivery: <strong>${o.deliveryDate}</strong></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${getStatusBadgeHTML(o.status)}
+                        ${diffBadge}
+                        <i class="fa-solid fa-chevron-right text-slate-400 text-xs"></i>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // CUSTOMERS MANAGEMENT
+        function renderCustomersTable() {
+            const tbody = document.getElementById("customers-table-body");
+            tbody.innerHTML = "";
+
+            const query = (document.getElementById("customer-search-input")?.value || "").toLowerCase();
+
+            const filtered = dbCustomers.filter(c => 
+                c.name.toLowerCase().includes(query) || c.phone.includes(query)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No matching customers found.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(c => {
+                const custOrdersCount = dbOrders.filter(o => o.customerId === c.id).length;
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold text-slate-900">${c.name}</td>
+                    <td class="p-3.5 font-mono text-slate-600">${c.phone}</td>
+                    <td class="p-3.5 text-slate-500 max-w-xs truncate">${c.address || '-'}</td>
+                    <td class="p-3.5"><span class="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-bold">${custOrdersCount} bookings</span></td>
+                    <td class="p-3.5 flex items-center gap-2">
+                        <button onclick="openNewOrderForCustomer('${c.id}')" class="bg-brand-50 hover:bg-brand-100 text-brand-700 px-2.5 py-1 rounded-lg font-semibold text-[11px] transition">
+                            + Book Order
+                        </button>
+                        <button onclick="editCustomer('${c.id}')" class="p-1.5 text-slate-500 hover:text-brand-700" title="Edit Customer"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteCustomer('${c.id}')" class="p-1.5 text-slate-500 hover:text-rose-600" title="Delete Customer"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openCustomerModal(cust = null) {
+            document.getElementById("cust-id").value = cust ? cust.id : "";
+            document.getElementById("cust-name").value = cust ? cust.name : "";
+            document.getElementById("cust-phone").value = cust ? cust.phone : "";
+            document.getElementById("cust-address").value = cust ? cust.address || "" : "";
+            document.getElementById("cust-notes").value = cust ? cust.notes || "" : "";
+            document.getElementById("customer-modal-title").innerText = cust ? "Edit Customer Details" : "Add New Customer";
+            document.getElementById("customer-modal").classList.remove("hidden");
+        }
+
+        function closeCustomerModal() {
+            document.getElementById("customer-modal").classList.add("hidden");
+        }
+
+        function saveCustomer(e) {
+            e.preventDefault();
+            const id = document.getElementById("cust-id").value;
+            const name = document.getElementById("cust-name").value.trim();
+            const phone = document.getElementById("cust-phone").value.trim();
+            const address = document.getElementById("cust-address").value.trim();
+            const notes = document.getElementById("cust-notes").value.trim();
+
+            if (id) {
+                const idx = dbCustomers.findIndex(c => c.id === id);
+                if (idx !== -1) {
+                    dbCustomers[idx] = { ...dbCustomers[idx], name, phone, address, notes };
+                }
+            } else {
+                const newId = "CST-" + (100 + dbCustomers.length + 1);
+                dbCustomers.push({ id: newId, name, phone, address, notes });
+            }
+
+            saveDataToStorage();
+            closeCustomerModal();
+        }
+
+        function editCustomer(id) {
+            const cust = dbCustomers.find(c => c.id === id);
+            if (cust) openCustomerModal(cust);
+        }
+
+        function deleteCustomer(id) {
+            if (confirm("Are you sure you want to delete this customer record?")) {
+                dbCustomers = dbCustomers.filter(c => c.id !== id);
+                saveDataToStorage();
+            }
+        }
+
+        // DYNAMIC MEASUREMENTS ENGINE
+        const DRESS_MEASUREMENT_FIELDS = {
+            "Blouse": ["Shoulder", "Chest", "Waist", "SleeveLength", "ArmHole", "NeckFront", "NeckBack", "BlouseLength"],
+            "Saree Blouse": ["Shoulder", "Chest", "Waist", "SleeveLength", "ArmHole", "NeckFront", "NeckBack", "BlouseLength"],
+            "Chudidar": ["Shoulder", "Chest", "Waist", "SleeveLength", "ShirtLength", "Neck"],
+            "Kurti": ["Shoulder", "Chest", "Waist", "SleeveLength", "ShirtLength", "Neck"],
+            "Shirt": ["Shoulder", "Chest", "Waist", "SleeveLength", "ShirtLength", "Neck"],
+            "Pant": ["Waist", "Hip", "FullLength", "Thigh", "Knee", "Bottom"],
+            "Lehenga": ["Waist", "Hip", "FullLength"],
+            "Kids dress": ["Chest", "Waist", "FullLength"],
+            "Other": ["Length", "Chest", "Waist", "Hip"]
+        };
+
+        function renderDynamicMeasurementsForm(existingMeasurements = {}) {
+            const dressType = document.getElementById("ord-dress-type").value;
+            const container = document.getElementById("dynamic-measurements-container");
+            container.innerHTML = "";
+
+            const fields = DRESS_MEASUREMENT_FIELDS[dressType] || DRESS_MEASUREMENT_FIELDS["Other"];
+
+            fields.forEach(field => {
+                const val = existingMeasurements[field] || "";
+                const div = document.createElement("div");
+                div.innerHTML = `
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">${field} (in)</label>
+                    <input type="text" data-field="${field}" value="${val}" placeholder="0.0" class="measure-input w-full p-2 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-brand-500 font-mono text-xs">
+                `;
+                container.appendChild(div);
+            });
+
+            checkAndShowPreviousMeasurementButton();
+        }
+
+        function checkAndShowPreviousMeasurementButton() {
+            const custId = document.getElementById("ord-customer-id").value;
+            const dressType = document.getElementById("ord-dress-type").value;
+            const btn = document.getElementById("btn-copy-prev-measure");
+
+            // Check if customer has any previous order with this dress type
+            const prevOrder = dbOrders.find(o => o.customerId === custId && o.dressType === dressType && o.measurements);
+            if (prevOrder) {
+                btn.classList.remove("hidden");
+            } else {
+                btn.classList.add("hidden");
+            }
+        }
+
+        function copyPreviousMeasurements() {
+            const custId = document.getElementById("ord-customer-id").value;
+            const dressType = document.getElementById("ord-dress-type").value;
+            const prevOrder = dbOrders.find(o => o.customerId === custId && o.dressType === dressType && o.measurements);
+
+            if (prevOrder && prevOrder.measurements) {
+                renderDynamicMeasurementsForm(prevOrder.measurements);
+            }
+        }
+
+        function onOrderCustomerChange() {
+            checkAndShowPreviousMeasurementButton();
+        }
+
+        // ORDER MANAGEMENT
+        function renderOrdersTable() {
+            const tbody = document.getElementById("orders-table-body");
+            tbody.innerHTML = "";
+
+            const search = (document.getElementById("order-search-input")?.value || "").toLowerCase();
+            const statusFilt = document.getElementById("order-status-filter")?.value || "ALL";
+            const dressFilt = document.getElementById("order-dress-filter")?.value || "ALL";
+            const payFilt = document.getElementById("order-payment-filter")?.value || "ALL";
+
+            const filtered = dbOrders.filter(o => {
+                const cust = getCustomerById(o.customerId);
+                const matchesSearch = o.id.toLowerCase().includes(search) || cust.name.toLowerCase().includes(search) || cust.phone.includes(search);
+                const matchesStatus = statusFilt === "ALL" || o.status === statusFilt;
+                const matchesDress = dressFilt === "ALL" || o.dressType === dressFilt;
+                
+                const bal = calculateOrderBalance(o);
+                let matchesPay = true;
+                if (payFilt === "PENDING") matchesPay = bal > 0;
+                if (payFilt === "PAID") matchesPay = bal === 0;
+
+                return matchesSearch && matchesStatus && matchesDress && matchesPay;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">No orders match filter criteria.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(o => {
+                const cust = getCustomerById(o.customerId);
+                const bal = calculateOrderBalance(o);
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold font-mono text-brand-700">${o.id}</td>
+                    <td class="p-3.5">
+                        <div class="font-bold text-slate-900">${cust.name}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">${cust.phone}</div>
+                    </td>
+                    <td class="p-3.5 font-medium">${o.dressType}</td>
+                    <td class="p-3.5 font-medium">${o.deliveryDate}</td>
+                    <td class="p-3.5">${getStatusBadgeHTML(o.status)}</td>
+                    <td class="p-3.5 font-bold">₹${o.totalCost}</td>
+                    <td class="p-3.5 font-bold ${bal > 0 ? 'text-rose-600' : 'text-emerald-600'}">₹${bal}</td>
+                    <td class="p-3.5 text-right space-x-1">
+                        <button onclick="openOrderDetailModal('${o.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-semibold text-[11px]">View</button>
+                        <button onclick="openPaymentModal('${o.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-semibold text-[11px]" title="Add Payment"><i class="fa-solid fa-indian-rupee-sign"></i></button>
+                        <button onclick="openStatusModal('${o.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg font-semibold text-[11px]" title="Change Status"><i class="fa-solid fa-rotate"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateCustomerSelectDropdown(selectedId = "") {
+            const select = document.getElementById("ord-customer-id");
+            select.innerHTML = "";
+            dbCustomers.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.innerText = `${c.name} (${c.phone})`;
+                if (c.id === selectedId) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function openNewOrderModal(order = null) {
+            populateCustomerSelectDropdown(order ? order.customerId : "");
+            
+            document.getElementById("order-id").value = order ? order.id : "";
+            document.getElementById("ord-order-date").value = order ? order.orderDate : SYSTEM_TODAY;
+            document.getElementById("ord-delivery-date").value = order ? order.deliveryDate : "2026-09-24";
+            document.getElementById("ord-instructions").value = order ? order.instructions || "" : "";
+            document.getElementById("ord-total-cost").value = order ? order.totalCost : 600;
+            document.getElementById("ord-advance").value = order ? order.advancePaid : 200;
+            document.getElementById("ord-status").value = order ? order.status : "Pending";
+
+            if (order) {
+                document.getElementById("ord-dress-type").value = order.dressType;
+                renderDynamicMeasurementsForm(order.measurements || {});
+            } else {
+                renderDynamicMeasurementsForm();
+            }
+
+            calcOrderBalance();
+            document.getElementById("order-modal-title").innerText = order ? `Edit Order #${order.id}` : "Create Tailoring Booking";
+            document.getElementById("order-modal").classList.remove("hidden");
+        }
+
+        function openNewOrderForCustomer(custId) {
+            switchTab('orders');
+            openNewOrderModal();
+            document.getElementById("ord-customer-id").value = custId;
+            checkAndShowPreviousMeasurementButton();
+        }
+
+        function closeOrderModal() {
+            document.getElementById("order-modal").classList.add("hidden");
+        }
+
+        function calcOrderBalance() {
+            const cost = Number(document.getElementById("ord-total-cost").value) || 0;
+            const adv = Number(document.getElementById("ord-advance").value) || 0;
+            document.getElementById("ord-balance").value = Math.max(0, cost - adv);
+        }
+
+        function saveOrder(e) {
+            e.preventDefault();
+            const id = document.getElementById("order-id").value;
+            const customerId = document.getElementById("ord-customer-id").value;
+            const dressType = document.getElementById("ord-dress-type").value;
+            const orderDate = document.getElementById("ord-order-date").value;
+            const deliveryDate = document.getElementById("ord-delivery-date").value;
+            const instructions = document.getElementById("ord-instructions").value.trim();
+            const totalCost = Number(document.getElementById("ord-total-cost").value);
+            const advancePaid = Number(document.getElementById("ord-advance").value);
+            const status = document.getElementById("ord-status").value;
+
+            // Extract dynamic measurements from inputs
+            const measurements = {};
+            document.querySelectorAll("#dynamic-measurements-container .measure-input").forEach(inp => {
+                const fKey = inp.getAttribute("data-field");
+                if (inp.value) measurements[fKey] = inp.value.trim();
+            });
+
+            if (id) {
+                const idx = dbOrders.findIndex(o => o.id === id);
+                if (idx !== -1) {
+                    dbOrders[idx] = {
+                        ...dbOrders[idx],
+                        customerId,
+                        dressType,
+                        orderDate,
+                        deliveryDate,
+                        instructions,
+                        totalCost,
+                        advancePaid,
+                        status,
+                        measurements
+                    };
+                }
+            } else {
+                const newId = "ORD-" + (1000 + dbOrders.length + 1);
+                const initialPayments = advancePaid > 0 ? [{ date: orderDate, amount: advancePaid, note: "Initial Advance" }] : [];
+                dbOrders.push({
+                    id: newId,
+                    customerId,
+                    dressType,
+                    orderDate,
+                    deliveryDate,
+                    instructions,
+                    totalCost,
+                    advancePaid,
+                    status,
+                    measurements,
+                    payments: initialPayments
+                });
+            }
+
+            saveDataToStorage();
+            closeOrderModal();
+        }
+
+        // ORDER DETAIL MODAL
+        function openOrderDetailModal(orderId) {
+            const order = dbOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const cust = getCustomerById(order.customerId);
+            const paidTotal = calculateOrderPaidTotal(order);
+            const bal = calculateOrderBalance(order);
+
+            document.getElementById("dtl-order-id").innerText = `#${order.id}`;
+            document.getElementById("dtl-customer-name").innerText = cust.name;
+
+            // Build dynamic measurement items markup
+            let measuresHTML = "";
+            if (order.measurements && Object.keys(order.measurements).length > 0) {
+                for (let [k, v] of Object.entries(order.measurements)) {
+                    measuresHTML += `
+                        <div class="bg-white p-2 rounded border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-400 uppercase font-semibold">${k}</span>
+                            <span class="font-mono font-bold text-slate-800 text-sm">${v}"</span>
+                        </div>
+                    `;
+                }
+            } else {
+                measuresHTML = `<p class="text-slate-400 italic">No specific measurements recorded.</p>`;
+            }
+
+            // Build payment timeline markup
+            let paymentsHTML = "";
+            if (order.payments && order.payments.length > 0) {
+                order.payments.forEach(p => {
+                    paymentsHTML += `
+                        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+                            <div>
+                                <span class="font-semibold text-slate-800">₹${p.amount}</span>
+                                <span class="text-[10px] text-slate-400 ml-2">(${p.note || 'Payment'})</span>
+                            </div>
+                            <span class="font-mono text-[10px] text-slate-500">${p.date}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                paymentsHTML = `<p class="text-slate-400 italic">No payment history recorded.</p>`;
+            }
+
+            const body = document.getElementById("dtl-content-body");
+            body.innerHTML = `
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Client Phone:</span>
+                        <p class="font-bold font-mono text-slate-800">${cust.phone}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Address:</span>
+                        <p class="text-slate-700 truncate">${cust.address || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Dress Category:</span>
+                        <p class="font-bold text-brand-700">${order.dressType}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Current Status:</span>
+                        <div>${getStatusBadgeHTML(order.status)}</div>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Booking Date:</span>
+                        <p class="font-medium">${order.orderDate}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 uppercase font-semibold text-[10px]">Target Delivery:</span>
+                        <p class="font-bold text-rose-700">${order.deliveryDate}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Garment Measurements</h4>
+                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 bg-amber-50/50 p-3 rounded-xl border border-amber-200/60">
+                        ${measuresHTML}
+                    </div>
+                </div>
+
+                ${order.instructions ? `
+                    <div class="bg-slate-100 p-2.5 rounded-lg border border-slate-200">
+                        <span class="font-bold text-slate-700">Special Instructions:</span>
+                        <p class="text-slate-600 mt-0.5">${order.instructions}</p>
+                    </div>
+                ` : ''}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                        <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">Financial Breakdown</h4>
+                        <div class="flex justify-between"><span>Total Cost:</span> <strong class="font-bold">₹${order.totalCost}</strong></div>
+                        <div class="flex justify-between text-emerald-700"><span>Total Paid:</span> <strong class="font-bold">₹${paidTotal}</strong></div>
+                        <div class="flex justify-between text-rose-700 font-bold border-t pt-1"><span>Remaining Balance:</span> <span>₹${bal}</span></div>
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">Payment Installments</h4>
+                        <div class="max-h-28 overflow-y-auto custom-scrollbar">
+                            ${paymentsHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("dtl-btn-edit").onclick = () => { closeOrderDetailModal(); openNewOrderModal(order); };
+            document.getElementById("dtl-btn-status").onclick = () => { closeOrderDetailModal(); openStatusModal(order.id); };
+            document.getElementById("dtl-btn-payment").onclick = () => { closeOrderDetailModal(); openPaymentModal(order.id); };
+
+            document.getElementById("order-detail-modal").classList.remove("hidden");
+        }
+
+        function closeOrderDetailModal() {
+            document.getElementById("order-detail-modal").classList.add("hidden");
+        }
+
+        // STATUS UPDATE MODAL
+        function openStatusModal(orderId) {
+            const order = dbOrders.find(o => o.id === orderId);
+            if (!order) return;
+            document.getElementById("status-order-id").value = order.id;
+            document.getElementById("status-select-val").value = order.status;
+            document.getElementById("status-modal").classList.remove("hidden");
+        }
+
+        function closeStatusModal() {
+            document.getElementById("status-modal").classList.add("hidden");
+        }
+
+        function saveStatusUpdate(e) {
+            e.preventDefault();
+            const id = document.getElementById("status-order-id").value;
+            const newStatus = document.getElementById("status-select-val").value;
+
+            const idx = dbOrders.findIndex(o => o.id === id);
+            if (idx !== -1) {
+                dbOrders[idx].status = newStatus;
+                saveDataToStorage();
+            }
+            closeStatusModal();
+        }
+
+        // PAYMENT ENTRY MODAL
+        function openPaymentModal(orderId) {
+            const order = dbOrders.find(o => o.id === orderId);
+            if (!order) return;
+            const bal = calculateOrderBalance(order);
+
+            document.getElementById("pay-order-id").value = order.id;
+            document.getElementById("pay-amount").value = bal > 0 ? bal : 0;
+            document.getElementById("pay-date").value = SYSTEM_TODAY;
+            document.getElementById("payment-modal").classList.remove("hidden");
+        }
+
+        function closePaymentModal() {
+            document.getElementById("payment-modal").classList.add("hidden");
+        }
+
+        function savePaymentEntry(e) {
+            e.preventDefault();
+            const id = document.getElementById("pay-order-id").value;
+            const amount = Number(document.getElementById("pay-amount").value);
+            const note = document.getElementById("pay-note").value.trim();
+            const date = document.getElementById("pay-date").value;
+
+            const idx = dbOrders.findIndex(o => o.id === id);
+            if (idx !== -1) {
+                if (!dbOrders[idx].payments) dbOrders[idx].payments = [];
+                dbOrders[idx].payments.push({ amount, note, date });
+                saveDataToStorage();
+            }
+            closePaymentModal();
+        }
+
+        // CALENDAR VIEW
+        function changeCalendarMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function resetCalendarToToday() {
+            currentCalendarDate = new Date(2026, 8, 1);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            document.getElementById("calendar-month-year").innerText = `${monthNames[month]} ${year}`;
+
+            const grid = document.getElementById("calendar-grid");
+            grid.innerHTML = "";
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            // Empty padding slots
+            for (let i = 0; i < firstDayIndex; i++) {
+                const empty = document.createElement("div");
+                empty.className = "bg-slate-50/50 rounded-xl min-h-[70px] border border-slate-100";
+                grid.appendChild(empty);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const ordersOnDay = dbOrders.filter(o => o.deliveryDate === dateStr && o.status !== "Cancelled");
+                const isToday = dateStr === SYSTEM_TODAY;
+
+                const dayBox = document.createElement("div");
+                dayBox.className = `p-2 rounded-xl min-h-[75px] border transition flex flex-col justify-between cursor-pointer ${isToday ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-400' : 'bg-white border-slate-200/80 hover:border-brand-500'}`;
+                dayBox.onclick = () => showCalendarDayDetails(dateStr, ordersOnDay);
+
+                let badge = "";
+                if (ordersOnDay.length > 0) {
+                    badge = `<span class="bg-brand-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full mt-1 inline-block">${ordersOnDay.length} order(s)</span>`;
+                }
+
+                dayBox.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs ${isToday ? 'text-amber-900 font-extrabold' : 'text-slate-700'}">${day}</span>
+                        ${isToday ? '<span class="text-[9px] bg-amber-200 text-amber-900 font-bold px-1 rounded">TODAY</span>' : ''}
+                    </div>
+                    <div>${badge}</div>
+                `;
+                grid.appendChild(dayBox);
+            }
+        }
+
+        function showCalendarDayDetails(dateStr, orders) {
+            const container = document.getElementById("selected-date-orders");
+            document.getElementById("selected-date-title").innerText = `Scheduled Deliveries for: ${dateStr}`;
+            container.innerHTML = "";
+
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 italic">No bookings scheduled for delivery on this date.</p>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                const cust = getCustomerById(o.customerId);
+                const div = document.createElement("div");
+                div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between";
+                div.innerHTML = `
+                    <div>
+                        <strong class="font-bold text-slate-900">${cust.name}</strong> • ${o.dressType} (#${o.id})
+                        <p class="text-[11px] text-slate-500 font-mono">Phone: ${cust.phone}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${getStatusBadgeHTML(o.status)}
+                        <button onclick="openOrderDetailModal('${o.id}')" class="bg-brand-700 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg">View</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // REMINDERS & NOTIFICATIONS CENTER
+        function renderReminders() {
+            const container = document.getElementById("reminders-full-list");
+            container.innerHTML = "";
+
+            const activeOrders = dbOrders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled");
+
+            if (activeOrders.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 py-6">All active orders delivered! No pending reminders.</p>`;
+                return;
+            }
+
+            activeOrders.sort((a, b) => new Date(a.deliveryDate) - new Date(b.deliveryDate));
+
+            activeOrders.forEach(o => {
+                const cust = getCustomerById(o.customerId);
+                const diff = getDaysDiffFromToday(o.deliveryDate);
+                let message = "";
+                let alertClass = "";
+
+                if (diff < 0) {
+                    message = `OVERDUE: ${cust.name}'s ${o.dressType} order was due ${Math.abs(diff)} day(s) ago! Please check stitching progress immediately.`;
+                    alertClass = "bg-rose-50 border-rose-200 text-rose-900";
+                } else if (diff === 0) {
+                    message = `DUE TODAY: ${cust.name}'s ${o.dressType} should be ready for customer pickup today!`;
+                    alertClass = "bg-amber-50 border-amber-200 text-amber-900";
+                } else if (diff === 1) {
+                    message = `DUE TOMORROW: ${cust.name}'s ${o.dressType} is due tomorrow. Ensure iron & trial check.`;
+                    alertClass = "bg-indigo-50 border-indigo-200 text-indigo-900";
+                } else if (diff <= 3) {
+                    message = `DUE IN ${diff} DAYS: ${cust.name}'s ${o.dressType} is scheduled for delivery on ${o.deliveryDate}.`;
+                    alertClass = "bg-blue-50 border-blue-200 text-blue-900";
+                } else {
+                    message = `UPCOMING: ${cust.name}'s ${o.dressType} due on ${o.deliveryDate}.`;
+                    alertClass = "bg-slate-50 border-slate-200 text-slate-800";
+                }
+
+                const card = document.createElement("div");
+                card.className = `p-4 rounded-xl border ${alertClass} flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs`;
+                card.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-bell text-brand-600 text-base mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">${message}</p>
+                            <span class="text-[11px] opacity-75 font-mono">Order ID: #${o.id} • Phone: ${cust.phone}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openStatusModal('${o.id}')" class="bg-white hover:bg-slate-100 text-slate-800 font-bold px-3 py-1.5 rounded-lg border text-[11px] shadow-xs">Update Status</button>
+                        <button onclick="openOrderDetailModal('${o.id}')" class="bg-brand-700 hover:bg-brand-800 text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] shadow-xs">View Details</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderNotificationsDrawer() {
+            const list = document.getElementById("notification-list");
+            list.innerHTML = "";
+
+            const urgent = dbOrders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled" && getDaysDiffFromToday(o.deliveryDate) <= 3);
+
+            const navBadge = document.getElementById("nav-badge-count");
+            const headerBell = document.getElementById("header-bell-badge");
+
+            if (urgent.length > 0) {
+                navBadge.innerText = urgent.length;
+                navBadge.classList.remove("hidden");
+                headerBell.classList.remove("hidden");
+            } else {
+                navBadge.classList.add("hidden");
+                headerBell.classList.add("hidden");
+            }
+
+            if (urgent.length === 0) {
+                list.innerHTML = `<p class="p-4 text-center text-xs text-slate-400">No urgent notifications right now.</p>`;
+                return;
+            }
+
+            urgent.forEach(o => {
+                const cust = getCustomerById(o.customerId);
+                const diff = getDaysDiffFromToday(o.deliveryDate);
+                const item = document.createElement("div");
+                item.className = "p-3 hover:bg-slate-50 transition cursor-pointer text-xs";
+                item.onclick = () => { toggleNotificationDrawer(); openOrderDetailModal(o.id); };
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <strong class="font-bold text-slate-900">${cust.name}</strong>
+                        <span class="text-[10px] font-bold text-rose-600">${diff < 0 ? 'OVERDUE' : (diff === 0 ? 'TODAY' : diff + 'd left')}</span>
+                    </div>
+                    <p class="text-slate-600">${o.dressType} (#${o.id}) scheduled for ${o.deliveryDate}</p>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function toggleNotificationDrawer() {
+            document.getElementById("notification-drawer").classList.toggle("hidden");
+        }
+
+        function markAllNotificationsRead() {
+            document.getElementById("notification-drawer").classList.add("hidden");
+            document.getElementById("header-bell-badge").classList.add("hidden");
+        }
+
+        // PRINT RECEIPT ENGINE
+        function printOrderReceiptFromDetail() {
+            const orderId = document.getElementById("dtl-order-id").innerText.replace('#', '');
+            const order = dbOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const cust = getCustomerById(order.customerId);
+            const paid = calculateOrderPaidTotal(order);
+            const bal = calculateOrderBalance(order);
+
+            document.getElementById("rcpt-cust-name").innerText = cust.name;
+            document.getElementById("rcpt-cust-phone").innerText = cust.phone;
+            document.getElementById("rcpt-order-id").innerText = `#${order.id}`;
+            document.getElementById("rcpt-order-date").innerText = order.orderDate;
+            document.getElementById("rcpt-delivery-date").innerText = order.deliveryDate;
+            document.getElementById("rcpt-dress-type").innerText = order.dressType;
+            document.getElementById("rcpt-instructions").innerText = order.instructions ? `Instructions: ${order.instructions}` : '';
+            document.getElementById("rcpt-total-cost").innerText = `₹${order.totalCost}`;
+            document.getElementById("rcpt-total-paid").innerText = `₹${paid}`;
+            document.getElementById("rcpt-balance").innerText = `₹${bal}`;
+
+            // Build measurement summary text
+            let mSummary = "";
+            if (order.measurements) {
+                mSummary = Object.entries(order.measurements).map(([k, v]) => `${k}: ${v}"`).join(" | ");
+            }
+            document.getElementById("rcpt-measurements-summary").innerText = mSummary || "Standard Measurement";
+
+            window.print();
+        }
+
+        function printTodaysSchedule() {
+            window.print();
+        }
+
+        // GLOBAL SEARCH HANDLER
+        function handleGlobalSearch(e) {
+            const query = e.target.value.toLowerCase();
+            if (!query) return;
+            switchTab('orders');
+            document.getElementById("order-search-input").value = query;
+            renderOrdersTable();
+        }
+
+        // REPORTS & ANALYTICS CHARTS
+        let statusChartInstance = null;
+        let dressChartInstance = null;
+
+        function renderReportsAnalytics() {
+            let totalRev = 0;
+            let totalCollected = 0;
+            let totalPending = 0;
+
+            dbOrders.forEach(o => {
+                if (o.status !== "Cancelled") {
+                    totalRev += o.totalCost;
+                    const paid = calculateOrderPaidTotal(o);
+                    totalCollected += paid;
+                    totalPending += calculateOrderBalance(o);
+                }
+            });
+
+            document.getElementById("rep-total-rev").innerText = `₹${totalRev.toLocaleString()}`;
+            document.getElementById("rep-collected-rev").innerText = `₹${totalCollected.toLocaleString()}`;
+            document.getElementById("rep-pending-rev").innerText = `₹${totalPending.toLocaleString()}`;
+
+            // Status Distribution Chart
+            const statusCounts = { Pending: 0, Cutting: 0, Stitching: 0, Ready: 0, Delivered: 0, Cancelled: 0 };
+            dbOrders.forEach(o => { if (statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
+
+            const ctx1 = document.getElementById('chart-status-pie').getContext('2d');
+            if (statusChartInstance) statusChartInstance.destroy();
+            statusChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f59e0b', '#f97316', '#3b82f6', '#14b8a6', '#10b981', '#ef4444']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Dress Type Distribution Chart
+            const dressCounts = {};
+            dbOrders.forEach(o => {
+                dressCounts[o.dressType] = (dressCounts[o.dressType] || 0) + 1;
+            });
+
+            const ctx2 = document.getElementById('chart-dress-bar').getContext('2d');
+            if (dressChartInstance) dressChartInstance.destroy();
+            dressChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dressCounts),
+                    datasets: [{
+                        label: 'Bookings Count',
+                        data: Object.values(dressCounts),
+                        backgroundColor: '#15803d'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // DATA EXPORT UTILITIES
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ customers: dbCustomers, orders: dbOrders }));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `SmartTailor_Backup_${SYSTEM_TODAY}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function exportCustomersCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,ID,Name,Phone,Address,Notes\n";
+            dbCustomers.forEach(c => {
+                csvContent += `"${c.id}","${c.name}","${c.phone}","${c.address || ''}","${c.notes || ''}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Tailor_Customers_${SYSTEM_TODAY}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function resetDataToSample() {
+            if (confirm("Reset all databases back to initial sample state? Custom additions will be overwritten.")) {
+                localStorage.removeItem("smarttailor_customers");
+                localStorage.removeItem("smarttailor_orders");
+                initLocalStorage();
+                loadDataFromStorage();
+                refreshAllUI();
+            }
+        }
+    </script>
+</body>
+</html>
